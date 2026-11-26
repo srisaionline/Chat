@@ -22,6 +22,7 @@
       background: rgba(255,255,255,0.18); border: none; color: #fff;
       padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600;
     }
+    .reset-btn:hover { background: rgba(255,255,255,0.28); }
     .chat-body {
       flex: 1; padding: 16px; overflow-y: auto; background: #f8fafc;
       display: flex; flex-direction: column; gap: 10px;
@@ -42,6 +43,7 @@
       display: inline-block; margin-top: 8px; background: #16a34a; color: #fff;
       text-decoration: none; padding: 10px 14px; border-radius: 10px; font-weight: 700; font-size: 13px;
     }
+    .download-btn:hover { background: #15803d; }
     .chat-input {
       display: flex; gap: 8px; padding: 12px; background: #fff; border-top: 1px solid #e2e8f0;
     }
@@ -76,8 +78,7 @@
   </div>
 
   <script>
-    // Replace with your Cloudflare Tunnel URL when deployed on GitHub Pages
-    const API_BASE = "http://127.0.0.1:8000";
+    const API_BASE = "https://foot-holding-nominated-johnson.trycloudflare.com";
 
     const chatBody = document.getElementById("chatBody");
     const chatForm = document.getElementById("chatForm");
@@ -215,7 +216,6 @@
           `<a class="download-btn" href="${url}" download="${fileName}">Download PDF</a>`
         );
 
-        // Automatically revoke memory blob after 5 minutes
         setTimeout(() => URL.revokeObjectURL(url), 5 * 60 * 1000);
         setInputEnabled(false, "Click 'New Card' above to start again");
       } catch (err) {
