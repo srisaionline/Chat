@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TS Ration Card Bot</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
+    body { background: #eef2f7; display: flex; justify-content: center; align-items: center; height: 100vh; }
+    .chat-shell {
+      width: 100%; max-width: 460px; height: 92vh; max-height: 780px;
+      background: #fff; border-radius: 16px; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+    .chat-header {
+      background: #0f4c81; color: #fff; padding: 16px 18px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .chat-header h1 { font-size: 16px; font-weight: 700; }
+    .chat-header span { font-size: 12px; opacity: 0.85; }
+    .reset-btn {
+      background: rgba(255,255,255,0.18); border: none; color: #fff;
+      padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600;
+    }
+    .chat-body {
+      flex: 1; padding: 16px; overflow-y: auto; background: #f8fafc;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .msg {
+      max-width: 82%; padding: 10px 14px; border-radius: 14px; font-size: 14px; line-height: 1.45;
+      word-wrap: break-word;
+    }
+    .msg.bot { background: #fff; color: #1e293b; align-self: flex-start; border: 1px solid #e2e8f0; border-bottom-left-radius: 4px; }
+    .msg.user { background: #0f4c81; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .quick-replies { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+    .chip {
+      background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd;
+      padding: 8px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .chip:hover { background: #0284c7; color: #fff; }
+    .download-btn {
+      display: inline-block; margin-top: 8px; background: #16a34a; color: #fff;
+      text-decoration: none; padding: 10px 14px; border-radius: 10px; font-weight: 700; font-size: 13px;
+    }
+    .chat-input {
+      display: flex; gap: 8px; padding: 12px; background: #fff; border-top: 1px solid #e2e8f0;
+    }
+    .chat-input input {
+      flex: 1; padding: 11px 14px; border: 1px solid #cbd5e1; border-radius: 10px;
+      font-size: 14px; outline: none;
+    }
+    .chat-input input:focus { border-color: #0f4c81; }
+    .chat-input button {
+      background: #0f4c81; color: #fff; border: none; padding: 0 18px;
+      border-radius: 10px; font-weight: 700; cursor: pointer;
+    }
+    .chat-input button:disabled { background: #94a3b8; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <div class="chat-shell">
+    <div class="chat-header">
+      <div>
+        <h1>TS Ration Card Assistant</h1>
+        <span>Instant In-Memory PDF Generator</span>
+      </div>
+      <button class="reset-btn" onclick="resetChat()">New Card</button>
+    </div>
+
+    <div class="chat-body" id="chatBody"></div>
+
+    <form class="chat-input" id="chatForm">
+      <input type="text" id="userInput" placeholder="Type your reply..." autocomplete="off" />
+      <button type="submit" id="sendBtn">Send</button>
+    </form>
+  </div>
+
+  <script>
+    // Replace with your Cloudflare Tunnel URL when deployed on GitHub Pages
+    const API_BASE = "http://127.0.0.1:8000";
+
+    const chatBody = document.getElementById("chatBody");
+    const chatForm = document.getElementById("chatForm");
+    const userInput = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+
+    let state = {};
+
+    function addMsg(html, sender = "bot") {
+      const div = document.createElement("div");
+      div.className = `msg ${sender}`;
+      div.innerHTML = html;
+      chatBody.appendChild(div);
+      chatBody.scrollTop = chatBody.scrollHeight;
+      return div;
+    }
+
+    function addChips(options, onSelect) {
+      const wrap = document.createElement("div");
+      wrap.className = "quick-replies";
+      options.forEach(opt => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "chip";
+        btn.textContent = opt.label;
+        btn.onclick = () => {
+          wrap.remove();
+          addMsg(opt.label, "user");
+          onSelect(opt.value);
+        };
+        wrap.appendChild(btn);
+      });
+      chatBody.appendChild(wrap);
+      chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    function setInputEnabled(enabled, placeholder = "Type your reply...") {
+      userInput.disabled = !enabled;
+      sendBtn.disabled = !enabled;
+      userInput.placeholder = placeholder;
+      if (enabled) userInput.focus();
+    }
+
+    function resetChat() {
+      chatBody.innerHTML = "";
+      state = { step: "CARD_TYPE", cardType: "", rationNo: "", scraped: null, hof: "", village: "", pincode: "" };
+      setInputEnabled(false, "Choose a card design above...");
+      addMsg("Welcome! Which Telangana Ration Card PDF would you like to generate?");
+      addChips([
+        { label: "Smart QR Card", value: "smart_qr" },
+        { label: "New Family Table Card", value: "family_table" }
+      ], (val) => {
+        state.cardType = val;
+        state.step = "RATION_NO";
+        addMsg("Please enter the <b>12-digit Ration Card Number</b>:");
+        setInputEnabled(true, "e.g. 369300849356");
+      });
+    }
+
+    async function handleRationNo(rcNo) {
+      if (!/^\d{12}$/.test(rcNo)) {
+        addMsg("Ration Card Number must be exactly 12 digits. Please try again.");
+        return;
+      }
+      state.rationNo = rcNo;
+      setInputEnabled(false, "Fetching details...");
+      const loading = addMsg("Fetching details from server, please wait...");
+
+      try {
+        const res = await fetch(`${API_BASE}/api/fetch`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ration_no: rcNo })
+        });
+        const data = await res.json();
+        loading.remove();
+
+        if (!res.ok) throw new Error(data.detail || "Could not fetch details.");
+
+        state.scraped = data;
+        state.step = "HOF";
+        addMsg(`Found card for <b>${data.district} / ${data.mandal}</b> (FP Shop: ${data.fp_shop_no}).<br>Select the <b>Head of Family</b>:`);
+
+        addChips(
+          data.members.map(m => ({ label: m.name, value: m.name })),
+          (selectedHof) => {
+            state.hof = selectedHof;
+            state.step = "VILLAGE";
+            addMsg("Enter the <b>Village / Ward Name</b>:");
+            setInputEnabled(true, "e.g. Rampur");
+          }
+        );
+      } catch (err) {
+        loading.remove();
+        addMsg(`Error: ${err.message}. Enter the 12-digit Ration Number again.`);
+        setInputEnabled(true, "Enter 12-digit Ration Number");
+      }
+    }
+
+    async function generatePdf() {
+      setInputEnabled(false, "Generating PDF...");
+      const loading = addMsg("Generating high-resolution A4 PDF in memory...");
+
+      try {
+        const payload = {
+          card_type: state.cardType,
+          ration_no: state.rationNo,
+          hof_name: state.hof,
+          fp_shop_no: state.scraped.fp_shop_no,
+          village: state.village,
+          mandal: state.scraped.mandal,
+          district: state.scraped.district,
+          pincode: state.pincode,
+          members: state.scraped.members
+        };
+
+        const res = await fetch(`${API_BASE}/api/generate-pdf`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || "PDF generation failed.");
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const fileName = `${state.hof} - TS Ration Card.pdf`;
+
+        loading.remove();
+        addMsg(
+          `Your PDF is ready! (No copy was stored on the server.)<br>` +
+          `<a class="download-btn" href="${url}" download="${fileName}">Download PDF</a>`
+        );
+
+        // Automatically revoke memory blob after 5 minutes
+        setTimeout(() => URL.revokeObjectURL(url), 5 * 60 * 1000);
+        setInputEnabled(false, "Click 'New Card' above to start again");
+      } catch (err) {
+        loading.remove();
+        addMsg(`Failed: ${err.message}`);
+        setInputEnabled(false, "Click 'New Card' to retry");
+      }
+    }
+
+    chatForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const text = userInput.value.trim();
+      if (!text) return;
+      userInput.value = "";
+      addMsg(text, "user");
+
+      if (state.step === "RATION_NO") {
+        await handleRationNo(text);
+      } else if (state.step === "VILLAGE") {
+        state.village = text;
+        state.step = "PINCODE";
+        addMsg("Enter the <b>6-digit Pincode</b>:");
+        setInputEnabled(true, "e.g. 506151");
+      } else if (state.step === "PINCODE") {
+        if (!/^\d{6}$/.test(text)) {
+          addMsg("Please enter a valid 6-digit pincode.");
+          return;
+        }
+        state.pincode = text;
+        state.step = "DONE";
+        await generatePdf();
+      }
+    });
+
+    resetChat();
+  </script>
+</body>
+</html>
