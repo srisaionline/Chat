@@ -64,7 +64,7 @@
     <div class="chat-header">
       <div>
         <h1>TS Ration Card Assistant</h1>
-        <span>Instant In-Memory PDF Generator</span>
+        <span id="serverStatus">Connecting to server...</span>
       </div>
       <button class="reset-btn" onclick="resetChat()">New Card</button>
     </div>
@@ -78,14 +78,31 @@
   </div>
 
   <script>
-    const API_BASE = "https://foot-holding-nominated-johnson.trycloudflare.com";
+    let API_BASE = "";
 
     const chatBody = document.getElementById("chatBody");
     const chatForm = document.getElementById("chatForm");
     const userInput = document.getElementById("userInput");
     const sendBtn = document.getElementById("sendBtn");
+    const serverStatus = document.getElementById("serverStatus");
 
     let state = {};
+
+    async function loadServerUrl() {
+      try {
+        // Cache-busting timestamp ensures the latest url.json is always fetched
+        const res = await fetch(`./url.json?t=${Date.now()}`, { cache: "no-store" });
+        if (!res.ok) throw new Error("url.json not found");
+        const data = await res.json();
+        if (!data.api_url) throw new Error("api_url missing");
+        API_BASE = data.api_url.replace(/\/+$/, "");
+        serverStatus.textContent = "Server Online";
+        return true;
+      } catch (err) {
+        serverStatus.textContent = "Server Offline";
+        return false;
+      }
+    }
 
     function addMsg(html, sender = "bot") {
       const div = document.createElement("div");
@@ -122,9 +139,17 @@
       if (enabled) userInput.focus();
     }
 
-    function resetChat() {
+    async function resetChat() {
       chatBody.innerHTML = "";
       state = { step: "CARD_TYPE", cardType: "", rationNo: "", scraped: null, hof: "", village: "", pincode: "" };
+      setInputEnabled(false, "Connecting...");
+
+      const ok = await loadServerUrl();
+      if (!ok) {
+        addMsg("Server is currently offline. Please start the PC Server Controller and click <b>New Card</b>.");
+        return;
+      }
+
       setInputEnabled(false, "Choose a card design above...");
       addMsg("Welcome! Which Telangana Ration Card PDF would you like to generate?");
       addChips([
@@ -145,7 +170,7 @@
       }
       state.rationNo = rcNo;
       setInputEnabled(false, "Fetching details...");
-      const loading = addMsg("Fetching details from server, please wait...");
+      const loading = addMsg("Fetching live details from SmartPDS, please wait...");
 
       try {
         const res = await fetch(`${API_BASE}/api/fetch`, {
