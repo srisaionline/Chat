@@ -723,7 +723,7 @@
         );
       } catch (err) {
         loading.remove();
-        addMsg(`⚠️ ${err.message}<br>Please enter the 12-digit Ration Number again or click <b>New Card</b>.`);
+        addMsg("⚠️ Server error. Try after some time or try another server.");
         setInputEnabled(true, "Enter 12-digit Ration Number");
       }
     }
