@@ -598,7 +598,8 @@
       setInputEnabled(false, "Select a service above...");
 
       addChips([
-        { label: "🪪 TS Ration Smart QR Card", value: "ration" },
+        { label: "🪪 TS Ration Smart QR (EPDS)", value: "ration" },
+        { label: "⚡ TS Ration Smart QR (SmartPDS)", value: "smartpds" },
         { label: "🏥 Arogyasri Card PDF", value: "arogya" }
       ], (svc) => {
         state.service = svc;
@@ -606,7 +607,8 @@
         if (svc === "arogya") {
           addMsg("Enter your <b>12-digit Ration Card Number</b> to auto-generate your <b>Arogyasri Card PDF</b>:");
         } else {
-          addMsg("Enter your <b>12-digit Telangana Ration Card Number</b> to generate your <b>Smart QR PDF</b>:");
+          const portal = svc === "smartpds" ? "SmartPDS" : "EPDS";
+          addMsg(`Enter your <b>12-digit Telangana Ration Card Number</b> to fetch via <b>${portal}</b>:`);
         }
         setInputEnabled(true, "e.g. 360000000000");
       });
@@ -659,11 +661,14 @@
         return;
       }
       state.rationNo = rcNo;
-      setInputEnabled(false, "Fetching from EPDS...");
-      const loading = addTypingMsg("Fetching live details from <b>EPDS Telangana</b>, please wait...");
+      const endpoint = state.service === "smartpds" ? "/api/fetch-smartpds" : "/api/fetch";
+      const portalName = state.service === "smartpds" ? "SmartPDS Telangana" : "EPDS Telangana";
+
+      setInputEnabled(false, `Fetching from ${portalName}...`);
+      const loading = addTypingMsg(`Fetching live details from <b>${portalName}</b>, please wait...`);
 
       try {
-        const res = await fetch(`${API_BASE}/api/fetch`, {
+        const res = await fetch(`${API_BASE}${endpoint}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ration_no: rcNo })
@@ -691,7 +696,7 @@
         );
       } catch (err) {
         loading.remove();
-        addMsg(`⚠️ ${err.message}<br>Please enter the 12-digit Ration Number again.`);
+        addMsg(`⚠️ ${err.message}<br>Please enter the 12-digit Ration Number again or click <b>New Card</b>.`);
         setInputEnabled(true, "Enter 12-digit Ration Number");
       }
     }
