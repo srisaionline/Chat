@@ -414,6 +414,7 @@
   </div>
 
   <script>
+    const SERVER_ERR_MSG = "Server error. Try after some time or try another server.";
     let API_BASE = "";
     let soundEnabled = true;
     let hasPlayedWelcome = false;
@@ -603,7 +604,7 @@
 
       const ok = await loadServerUrl();
       if (!ok) {
-        addMsg("Server is currently offline. Please start the PC Server Controller and click <b>New Card</b>.");
+        addMsg(`⚠️ ${SERVER_ERR_MSG}`);
         return;
       }
 
@@ -653,8 +654,7 @@
         });
 
         if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || "Could not generate Arogyasri PDF.");
+          throw new Error(SERVER_ERR_MSG);
         }
 
         const blob = await res.blob();
@@ -672,7 +672,7 @@
         setInputEnabled(false, "Click 'New Card' above to start again");
       } catch (err) {
         loading.remove();
-        addMsg("⚠️ Server error. Try after some time or try another server.");
+        addMsg(`⚠️ ${SERVER_ERR_MSG}`);
         setInputEnabled(true, "Enter 12-digit Ration Number");
       }
     }
@@ -700,7 +700,9 @@
         const data = await res.json();
         loading.remove();
 
-        if (!res.ok) throw new Error(data.detail || "Could not fetch details.");
+        if (!res.ok) {
+          throw new Error(SERVER_ERR_MSG);
+        }
 
         state.scraped = data;
         state.step = "HOF";
@@ -723,7 +725,7 @@
         );
       } catch (err) {
         loading.remove();
-        addMsg("⚠️ Server error. Try after some time or try another server.");
+        addMsg(`⚠️ ${SERVER_ERR_MSG}`);
         setInputEnabled(true, "Enter 12-digit Ration Number");
       }
     }
@@ -758,8 +760,7 @@
         });
 
         if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail || "PDF generation failed.");
+          throw new Error(SERVER_ERR_MSG);
         }
 
         const blob = await res.blob();
@@ -778,7 +779,7 @@
         setInputEnabled(false, "Click 'New Card' above to start again");
       } catch (err) {
         loading.remove();
-        addMsg(`⚠️ Failed: ${err.message}`);
+        addMsg(`⚠️ ${SERVER_ERR_MSG}`);
         setInputEnabled(false, "Click 'New Card' to retry");
       }
     }
