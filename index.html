@@ -377,7 +377,7 @@
         <div class="brand-avatar">SS</div>
         <div class="brand-info">
           <h1>Sri Sai Online Services</h1>
-          <span class="brand-sub">Rampur Online Center • PAN Center</span>
+          <span class="brand-sub">Online Center • PAN Center</span>
           <div class="status-row">
             <span class="status-dot" id="statusDot"></span>
             <span id="serverStatus">Connecting to server...</span>
@@ -394,7 +394,7 @@
     <div class="welcome-banner">
       <div class="welcome-text" id="greetingBanner">
         <strong>Welcome to Sri Sai Online Services</strong>
-        Rampur Online Center &amp; PAN Center
+        Online Center &amp; PAN Center
       </div>
       <span class="service-badge">TS RATION PDF</span>
     </div>
@@ -409,7 +409,7 @@
     </form>
 
     <div class="footer-note">
-      Sri Sai Online Services, X Road, Rampur • Instant In-Memory PDF (No Data Stored)
+      Sri Sai Online Services • Instant In-Memory PDF (No Data Stored)
     </div>
   </div>
 
@@ -439,7 +439,7 @@
 
     function updateGreetingBanner() {
       const greet = getTimeGreeting();
-      greetingBanner.innerHTML = `<strong>${greet}! Welcome to Sri Sai Online Services</strong>Rampur Online Center — PAN Center`;
+      greetingBanner.innerHTML = `<strong>${greet}! Welcome to Sri Sai Online Services</strong>Online Center — PAN Center`;
     }
 
     // Crisp Web Audio Welcome Chime (no external MP3 required)
@@ -601,7 +601,7 @@
 
       const greet = getTimeGreeting();
       addMsg(
-        `<b>${greet}!</b><br>Welcome to <b>Sri Sai Online Services — Rampur Online Center &amp; PAN Center</b>.<br><br>` +
+        `<b>${greet}!</b><br>Welcome to <b>Sri Sai Online Services — Online Center &amp; PAN Center</b>.<br><br>` +
         `Please enter your <b>12-digit Telangana Ration Card Number</b> to generate your Smart QR PDF:`
       );
       setInputEnabled(true, "e.g. 360000000000");
@@ -640,7 +640,7 @@
             state.hof = selectedHof;
             state.step = "VILLAGE";
             addMsg("Enter your <b>Village / Ward Name</b>:");
-            setInputEnabled(true, "e.g. Rampur");
+            setInputEnabled(true, "e.g. Srinagar");
           }
         );
       } catch (err) {
@@ -710,7 +710,7 @@
         state.village = text;
         state.step = "PINCODE";
         addMsg("Enter your <b>6-digit Pincode</b>:");
-        setInputEnabled(true, "e.g. 506151");
+        setInputEnabled(true, "e.g. 505001");
       } else if (state.step === "PINCODE") {
         if (!/^\d{6}$/.test(text)) {
           addMsg("Please enter a valid <b>6-digit pincode</b>.");
