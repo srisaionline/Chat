@@ -172,7 +172,7 @@ async function loadServerUrl() {
       }
 
       addMsg("Welcome! Enter your <b>12-digit Telangana Ration Card Number</b> to generate your Smart QR PDF:");
-      setInputEnabled(true, "e.g. 369300849356");
+      setInputEnabled(true, "e.g. 360000000000");
     }
 
     async function handleRationNo(rcNo) {
@@ -205,7 +205,7 @@ async function loadServerUrl() {
             state.hof = selectedHof;
             state.step = "VILLAGE";
             addMsg("Enter the <b>Village / Ward Name</b>:");
-            setInputEnabled(true, "e.g. Rampur");
+            setInputEnabled(true, "e.g. Srirampur");
           }
         );
       } catch (err) {
@@ -274,7 +274,7 @@ async function loadServerUrl() {
         state.village = text;
         state.step = "PINCODE";
         addMsg("Enter the <b>6-digit Pincode</b>:");
-        setInputEnabled(true, "e.g. 506151");
+        setInputEnabled(true, "e.g. 500005");
       } else if (state.step === "PINCODE") {
         if (!/^\d{6}$/.test(text)) {
           addMsg("Please enter a valid 6-digit pincode.");
