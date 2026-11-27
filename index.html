@@ -745,6 +745,9 @@
           mandal: state.scraped.mandal,
           district: state.scraped.district,
           pincode: state.pincode,
+          card_pool_type: state.scraped.card_pool_type || "",
+          card_type_code: state.scraped.card_type_code || "",
+          no_of_units: state.scraped.no_of_units || String(state.scraped.members.length),
           members: state.scraped.members
         };
 
