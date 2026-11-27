@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sri Sai Online Services — TS Ration Smart Card Bot</title>
+  <title>Sri Sai Online Services — TS Ration &amp; Arogyasri Bot</title>
   <style>
     * {
       box-sizing: border-box;
@@ -396,7 +396,7 @@
         <strong>Welcome to Sri Sai Online Services</strong>
         Online Center &amp; PAN Center
       </div>
-      <span class="service-badge">TS RATION PDF</span>
+      <span class="service-badge">SMART PDF BOT</span>
     </div>
 
     <!-- Chat Area -->
@@ -404,7 +404,7 @@
 
     <!-- Input Form -->
     <form class="chat-input" id="chatForm">
-      <input type="text" id="userInput" placeholder="Enter 12-digit Ration Number..." autocomplete="off" />
+      <input type="text" id="userInput" placeholder="Choose a service above..." autocomplete="off" />
       <button type="submit" id="sendBtn">Send</button>
     </form>
 
@@ -429,7 +429,6 @@
 
     let state = {};
 
-    // Time-based greeting helper
     function getTimeGreeting() {
       const hour = new Date().getHours();
       if (hour < 12) return "Good Morning ☀️";
@@ -442,17 +441,14 @@
       greetingBanner.innerHTML = `<strong>${greet}! Welcome to Sri Sai Online Services</strong>Online Center — PAN Center`;
     }
 
-    // Crisp Web Audio Welcome Chime (no external MP3 required)
     function playWelcomeChime() {
       if (!soundEnabled || hasPlayedWelcome) return;
       try {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (!AudioCtx) return;
         const ctx = new AudioCtx();
-        if (ctx.state === "suspended") {
-          ctx.resume().catch(() => {});
-        }
-        const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+        if (ctx.state === "suspended") ctx.resume().catch(() => {});
+        const notes = [523.25, 659.25, 783.99, 1046.5];
         const now = ctx.currentTime;
         notes.forEach((freq, i) => {
           const osc = ctx.createOscillator();
@@ -468,9 +464,7 @@
           osc.stop(now + i * 0.11 + 0.36);
         });
         hasPlayedWelcome = true;
-      } catch (e) {
-        // Browser blocked autoplay; will trigger on first user click/tap
-      }
+      } catch (e) {}
     }
 
     function toggleSound() {
@@ -482,11 +476,8 @@
       }
     }
 
-    // Fallback: if browser blocks autoplay on load, play chime on first interaction
     function unlockAudioOnce() {
-      if (!hasPlayedWelcome && soundEnabled) {
-        playWelcomeChime();
-      }
+      if (!hasPlayedWelcome && soundEnabled) playWelcomeChime();
       window.removeEventListener("pointerdown", unlockAudioOnce);
       window.removeEventListener("keydown", unlockAudioOnce);
     }
@@ -513,7 +504,7 @@
 
         if (!data.api_url) throw new Error("api_url missing");
         API_BASE = data.api_url.replace(/\/+$/, "");
-        serverStatus.textContent = "Server Online (EPDS Ready)";
+        serverStatus.textContent = "Server Online (Ready)";
         statusDot.className = "status-dot online";
         return true;
       } catch (err) {
@@ -524,7 +515,7 @@
           );
           const data = await fallback.json();
           API_BASE = data.api_url.replace(/\/+$/, "");
-          serverStatus.textContent = "Server Online (EPDS Ready)";
+          serverStatus.textContent = "Server Online (Ready)";
           statusDot.className = "status-dot online";
           return true;
         } catch {
@@ -590,7 +581,7 @@
     async function resetChat() {
       updateGreetingBanner();
       chatBody.innerHTML = "";
-      state = { step: "RATION_NO", rationNo: "", scraped: null, hof: "", village: "", pincode: "" };
+      state = { service: "", step: "SERVICE", rationNo: "", scraped: null, hof: "", village: "", pincode: "" };
       setInputEnabled(false, "Connecting...");
 
       const ok = await loadServerUrl();
@@ -602,9 +593,64 @@
       const greet = getTimeGreeting();
       addMsg(
         `<b>${greet}!</b><br>Welcome to <b>Sri Sai Online Services — Online Center &amp; PAN Center</b>.<br><br>` +
-        `Please enter your <b>12-digit Telangana Ration Card Number</b> to generate your Smart QR PDF:`
+        `Which PDF card would you like to generate today?`
       );
-      setInputEnabled(true, "e.g. 360000000000");
+      setInputEnabled(false, "Select a service above...");
+
+      addChips([
+        { label: "🪪 TS Ration Smart QR Card", value: "ration" },
+        { label: "🏥 Arogyasri Card PDF", value: "arogya" }
+      ], (svc) => {
+        state.service = svc;
+        state.step = "RATION_NO";
+        if (svc === "arogya") {
+          addMsg("Enter your <b>12-digit Ration Card Number</b> to auto-generate your <b>Arogyasri Card PDF</b>:");
+        } else {
+          addMsg("Enter your <b>12-digit Telangana Ration Card Number</b> to generate your <b>Smart QR PDF</b>:");
+        }
+        setInputEnabled(true, "e.g. 360000000000");
+      });
+    }
+
+    async function handleArogyaPdf(rcNo) {
+      if (!/^\d{10,12}$/.test(rcNo)) {
+        addMsg("Please enter a valid <b>12-digit Ration Card Number</b>.");
+        return;
+      }
+      state.rationNo = rcNo;
+      setInputEnabled(false, "Generating Arogyasri PDF...");
+      const loading = addTypingMsg("Fetching ePoS family records &amp; generating your <b>Arogyasri Card PDF</b>...");
+
+      try {
+        const res = await fetch(`${API_BASE}/api/arogya-pdf`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ration_no: rcNo })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || "Could not generate Arogyasri PDF.");
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const fileName = `${rcNo} - Arogyasri Card.pdf`;
+
+        loading.remove();
+        addMsg(
+          `🎉 Your <b>Arogyasri Card PDF</b> is ready!<br>` +
+          `<small style="color:#64748b;">Generated in memory — no copy is stored on the server.</small><br>` +
+          `<a class="download-btn" href="${url}" download="${fileName}">⬇️ Download Arogyasri PDF</a>`
+        );
+
+        setTimeout(() => URL.revokeObjectURL(url), 5 * 60 * 1000);
+        setInputEnabled(false, "Click 'New Card' above to start again");
+      } catch (err) {
+        loading.remove();
+        addMsg(`⚠️ ${err.message}<br>Please enter the Ration Number again or click <b>New Card</b>.`);
+        setInputEnabled(true, "Enter 12-digit Ration Number");
+      }
     }
 
     async function handleRationNo(rcNo) {
@@ -705,7 +751,11 @@
       addMsg(text, "user");
 
       if (state.step === "RATION_NO") {
-        await handleRationNo(text);
+        if (state.service === "arogya") {
+          await handleArogyaPdf(text);
+        } else {
+          await handleRationNo(text);
+        }
       } else if (state.step === "VILLAGE") {
         state.village = text;
         state.step = "PINCODE";
@@ -722,7 +772,6 @@
       }
     });
 
-    // Initialize on load
     window.addEventListener("DOMContentLoaded", () => {
       updateGreetingBanner();
       playWelcomeChime();
