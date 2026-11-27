@@ -578,10 +578,27 @@
       if (enabled) userInput.focus();
     }
 
+    function formatMemberChipLabel(m) {
+      const g = (m.gender || "").trim().toUpperCase();
+      if (g && g !== "NA") {
+        return `${m.name} (${g})`;
+      }
+      return m.name;
+    }
+
     async function resetChat() {
       updateGreetingBanner();
       chatBody.innerHTML = "";
-      state = { service: "", step: "SERVICE", rationNo: "", scraped: null, hof: "", village: "", pincode: "" };
+      state = {
+        service: "",
+        cardType: "smart_qr",
+        step: "SERVICE",
+        rationNo: "",
+        scraped: null,
+        hof: "",
+        village: "",
+        pincode: ""
+      };
       setInputEnabled(false, "Connecting...");
 
       const ok = await loadServerUrl();
@@ -598,16 +615,21 @@
       setInputEnabled(false, "Select a service above...");
 
       addChips([
-        { label: "🪪 TS Ration Smart QR (EPDS)", value: "ration" },
-        { label: "⚡ TS Ration Smart QR (SmartPDS)", value: "smartpds" },
-        { label: "🏥 Arogyasri Card PDF", value: "arogya" }
+        { label: "🪪 Smart QR Card (EPDS)", value: "epds_qr" },
+        { label: "⚡ Smart QR Card (SmartPDS)", value: "smartpds_qr" },
+        { label: "📋 Family Members Table PDF", value: "family_table_pdf" },
+        { label: "🏥 Arogyasri Card PDF", value: "arogya_pdf" }
       ], (svc) => {
         state.service = svc;
+        state.cardType = svc === "family_table_pdf" ? "family_table" : "smart_qr";
         state.step = "RATION_NO";
-        if (svc === "arogya") {
+
+        if (svc === "arogya_pdf") {
           addMsg("Enter your <b>12-digit Ration Card Number</b> to auto-generate your <b>Arogyasri Card PDF</b>:");
+        } else if (svc === "family_table_pdf") {
+          addMsg("Enter your <b>12-digit Ration Card Number</b> to generate your <b>Family Members Table PDF</b>:");
         } else {
-          const portal = svc === "smartpds" ? "SmartPDS" : "EPDS";
+          const portal = svc === "smartpds_qr" ? "SmartPDS" : "EPDS";
           addMsg(`Enter your <b>12-digit Telangana Ration Card Number</b> to fetch via <b>${portal}</b>:`);
         }
         setInputEnabled(true, "e.g. 360000000000");
@@ -661,8 +683,10 @@
         return;
       }
       state.rationNo = rcNo;
-      const endpoint = state.service === "smartpds" ? "/api/fetch-smartpds" : "/api/fetch";
-      const portalName = state.service === "smartpds" ? "SmartPDS Telangana" : "EPDS Telangana";
+
+      const useSmartPds = state.service === "smartpds_qr" || state.service === "family_table_pdf";
+      const endpoint = useSmartPds ? "/api/fetch-smartpds" : "/api/fetch";
+      const portalName = useSmartPds ? "SmartPDS Telangana" : "EPDS Telangana";
 
       setInputEnabled(false, `Fetching from ${portalName}...`);
       const loading = addTypingMsg(`Fetching live details from <b>${portalName}</b>, please wait...`);
@@ -686,7 +710,10 @@
         );
 
         addChips(
-          data.members.map(m => ({ label: m.name, value: m.name })),
+          data.members.map(m => ({
+            label: formatMemberChipLabel(m),
+            value: m.name
+          })),
           (selectedHof) => {
             state.hof = selectedHof;
             state.step = "VILLAGE";
@@ -702,11 +729,15 @@
     }
 
     async function generatePdf() {
-      setInputEnabled(false, "Generating Smart QR PDF...");
-      const loading = addTypingMsg("Designing your high-resolution <b>Smart QR Ration Card PDF</b>...");
+      const isFamilyTable = state.cardType === "family_table";
+      const cardLabel = isFamilyTable ? "Family Members Table PDF" : "Smart QR Ration Card PDF";
+
+      setInputEnabled(false, `Generating ${cardLabel}...`);
+      const loading = addTypingMsg(`Designing your high-resolution <b>${cardLabel}</b>...`);
 
       try {
         const payload = {
+          card_type: state.cardType,
           ration_no: state.rationNo,
           hof_name: state.hof,
           fp_shop_no: state.scraped.fp_shop_no,
@@ -730,13 +761,14 @@
 
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
-        const fileName = `${state.hof} - TS Ration Smart Card.pdf`;
+        const suffix = isFamilyTable ? "Family Details Card" : "TS Ration Smart Card";
+        const fileName = `${state.hof} - ${suffix}.pdf`;
 
         loading.remove();
         addMsg(
-          `🎉 Your <b>Smart QR Ration Card PDF</b> is ready!<br>` +
+          `🎉 Your <b>${cardLabel}</b> is ready!<br>` +
           `<small style="color:#64748b;">Generated in memory — no copy is stored on the server.</small><br>` +
-          `<a class="download-btn" href="${url}" download="${fileName}">⬇️ Download Smart Card PDF</a>`
+          `<a class="download-btn" href="${url}" download="${fileName}">⬇️ Download PDF</a>`
         );
 
         setTimeout(() => URL.revokeObjectURL(url), 5 * 60 * 1000);
@@ -756,7 +788,7 @@
       addMsg(text, "user");
 
       if (state.step === "RATION_NO") {
-        if (state.service === "arogya") {
+        if (state.service === "arogya_pdf") {
           await handleArogyaPdf(text);
         } else {
           await handleRationNo(text);
