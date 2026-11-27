@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TS Ration Card Bot</title>
+  <title>TS Ration Smart Card Bot</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, sans-serif; }
     body { background: #eef2f7; display: flex; justify-content: center; align-items: center; height: 100vh; }
@@ -63,7 +63,7 @@
   <div class="chat-shell">
     <div class="chat-header">
       <div>
-        <h1>TS Ration Card Assistant</h1>
+        <h1>TS Ration Smart Card Bot</h1>
         <span id="serverStatus">Connecting to server...</span>
       </div>
       <button class="reset-btn" onclick="resetChat()">New Card</button>
@@ -72,7 +72,7 @@
     <div class="chat-body" id="chatBody"></div>
 
     <form class="chat-input" id="chatForm">
-      <input type="text" id="userInput" placeholder="Type your reply..." autocomplete="off" />
+      <input type="text" id="userInput" placeholder="Enter 12-digit Ration Number..." autocomplete="off" />
       <button type="submit" id="sendBtn">Send</button>
     </form>
   </div>
@@ -95,7 +95,7 @@
         const data = await res.json();
         if (!data.api_url) throw new Error("api_url missing");
         API_BASE = data.api_url.replace(/\/+$/, "");
-        serverStatus.textContent = "Server Online";
+        serverStatus.textContent = "Server Online (EPDS)";
         return true;
       } catch (err) {
         serverStatus.textContent = "Server Offline";
@@ -140,17 +140,7 @@
 
     async function resetChat() {
       chatBody.innerHTML = "";
-      state = {
-        step: "CARD_TYPE",
-        cardType: "",
-        server: "smartpds",
-        district: "",
-        rationNo: "",
-        scraped: null,
-        hof: "",
-        village: "",
-        pincode: ""
-      };
+      state = { step: "RATION_NO", rationNo: "", scraped: null, hof: "", village: "", pincode: "" };
       setInputEnabled(false, "Connecting...");
 
       const ok = await loadServerUrl();
@@ -159,31 +149,8 @@
         return;
       }
 
-      setInputEnabled(false, "Choose a card design above...");
-      addMsg("Welcome! Which Telangana Ration Card PDF would you like to generate?");
-      addChips([
-        { label: "1. Family Details Table Card", value: "family_table" },
-        { label: "2. Smart QR Card", value: "smart_qr" }
-      ], (val) => {
-        state.cardType = val;
-        state.step = "SERVER";
-        addMsg("Choose which government server to fetch from:");
-        addChips([
-          { label: "Server 1: EPDS (District + RC)", value: "epds" },
-          { label: "Server 2: SmartPDS (RC Only)", value: "smartpds" }
-        ], (srv) => {
-          state.server = srv;
-          if (srv === "epds") {
-            state.step = "DISTRICT";
-            addMsg("Enter your <b>District Name</b> (e.g. Hanumakonda, Warangal, Karimnagar):");
-            setInputEnabled(true, "e.g. Hanumakonda");
-          } else {
-            state.step = "RATION_NO";
-            addMsg("Please enter the <b>12-digit Ration Card Number</b>:");
-            setInputEnabled(true, "e.g. 369300849356");
-          }
-        });
-      });
+      addMsg("Welcome! Enter your <b>12-digit Telangana Ration Card Number</b> to generate your Smart QR PDF:");
+      setInputEnabled(true, "e.g. 369300849356");
     }
 
     async function handleRationNo(rcNo) {
@@ -192,18 +159,14 @@
         return;
       }
       state.rationNo = rcNo;
-      setInputEnabled(false, "Fetching details...");
-      const loading = addMsg(`Fetching live details from <b>${state.server.toUpperCase()}</b>, please wait...`);
+      setInputEnabled(false, "Fetching from EPDS...");
+      const loading = addMsg("Fetching live details from <b>EPDS</b>, please wait...");
 
       try {
         const res = await fetch(`${API_BASE}/api/fetch`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ration_no: rcNo,
-            server: state.server,
-            district: state.district
-          })
+          body: JSON.stringify({ ration_no: rcNo })
         });
         const data = await res.json();
         loading.remove();
@@ -212,7 +175,7 @@
 
         state.scraped = data;
         state.step = "HOF";
-        addMsg(`Found card for <b>${data.district} / ${data.mandal}</b> (FP Shop: ${data.fp_shop_no}).<br>Select the <b>Head of Family</b>:`);
+        addMsg(`Found card for <b>${data.district || "TS"} / ${data.mandal || "-"}</b> (FP Shop: ${data.fp_shop_no || "-"}).<br>Select the <b>Head of Family</b>:`);
 
         addChips(
           data.members.map(m => ({ label: m.name, value: m.name })),
@@ -225,18 +188,17 @@
         );
       } catch (err) {
         loading.remove();
-        addMsg(`Error: ${err.message}.<br>Enter the 12-digit Ration Number again or click <b>New Card</b> to switch servers.`);
+        addMsg(`Error: ${err.message}. Enter the 12-digit Ration Number again.`);
         setInputEnabled(true, "Enter 12-digit Ration Number");
       }
     }
 
     async function generatePdf() {
-      setInputEnabled(false, "Generating PDF...");
-      const loading = addMsg("Generating high-resolution A4 PDF in memory...");
+      setInputEnabled(false, "Generating Smart QR PDF...");
+      const loading = addMsg("Generating high-resolution Smart QR Ration Card PDF in memory...");
 
       try {
         const payload = {
-          card_type: state.cardType,
           ration_no: state.rationNo,
           hof_name: state.hof,
           fp_shop_no: state.scraped.fp_shop_no,
@@ -260,11 +222,11 @@
 
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
-        const fileName = `${state.hof} - TS Ration Card.pdf`;
+        const fileName = `${state.hof} - TS Ration Smart Card.pdf`;
 
         loading.remove();
         addMsg(
-          `Your PDF is ready! (No copy was stored on the server.)<br>` +
+          `Your Smart QR Ration Card PDF is ready! (No copy was stored on the server.)<br>` +
           `<a class="download-btn" href="${url}" download="${fileName}">Download PDF</a>`
         );
 
@@ -284,12 +246,7 @@
       userInput.value = "";
       addMsg(text, "user");
 
-      if (state.step === "DISTRICT") {
-        state.district = text;
-        state.step = "RATION_NO";
-        addMsg("Now enter the <b>12-digit Ration Card Number</b>:");
-        setInputEnabled(true, "e.g. 369300849356");
-      } else if (state.step === "RATION_NO") {
+      if (state.step === "RATION_NO") {
         await handleRationNo(text);
       } else if (state.step === "VILLAGE") {
         state.village = text;
