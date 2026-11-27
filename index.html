@@ -90,7 +90,6 @@
 
     async function loadServerUrl() {
       try {
-        // Cache-busting timestamp ensures the latest url.json is always fetched
         const res = await fetch(`./url.json?t=${Date.now()}`, { cache: "no-store" });
         if (!res.ok) throw new Error("url.json not found");
         const data = await res.json();
@@ -141,7 +140,17 @@
 
     async function resetChat() {
       chatBody.innerHTML = "";
-      state = { step: "CARD_TYPE", cardType: "", rationNo: "", scraped: null, hof: "", village: "", pincode: "" };
+      state = {
+        step: "CARD_TYPE",
+        cardType: "",
+        server: "smartpds",
+        district: "",
+        rationNo: "",
+        scraped: null,
+        hof: "",
+        village: "",
+        pincode: ""
+      };
       setInputEnabled(false, "Connecting...");
 
       const ok = await loadServerUrl();
@@ -153,13 +162,27 @@
       setInputEnabled(false, "Choose a card design above...");
       addMsg("Welcome! Which Telangana Ration Card PDF would you like to generate?");
       addChips([
-        { label: "Smart QR Card", value: "smart_qr" },
-        { label: "New Family Table Card", value: "family_table" }
+        { label: "1. Family Details Table Card", value: "family_table" },
+        { label: "2. Smart QR Card", value: "smart_qr" }
       ], (val) => {
         state.cardType = val;
-        state.step = "RATION_NO";
-        addMsg("Please enter the <b>12-digit Ration Card Number</b>:");
-        setInputEnabled(true, "e.g. 369300849356");
+        state.step = "SERVER";
+        addMsg("Choose which government server to fetch from:");
+        addChips([
+          { label: "Server 1: EPDS (District + RC)", value: "epds" },
+          { label: "Server 2: SmartPDS (RC Only)", value: "smartpds" }
+        ], (srv) => {
+          state.server = srv;
+          if (srv === "epds") {
+            state.step = "DISTRICT";
+            addMsg("Enter your <b>District Name</b> (e.g. Hanumakonda, Warangal, Karimnagar):");
+            setInputEnabled(true, "e.g. Hanumakonda");
+          } else {
+            state.step = "RATION_NO";
+            addMsg("Please enter the <b>12-digit Ration Card Number</b>:");
+            setInputEnabled(true, "e.g. 369300849356");
+          }
+        });
       });
     }
 
@@ -170,13 +193,17 @@
       }
       state.rationNo = rcNo;
       setInputEnabled(false, "Fetching details...");
-      const loading = addMsg("Fetching live details from SmartPDS, please wait...");
+      const loading = addMsg(`Fetching live details from <b>${state.server.toUpperCase()}</b>, please wait...`);
 
       try {
         const res = await fetch(`${API_BASE}/api/fetch`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ration_no: rcNo })
+          body: JSON.stringify({
+            ration_no: rcNo,
+            server: state.server,
+            district: state.district
+          })
         });
         const data = await res.json();
         loading.remove();
@@ -198,7 +225,7 @@
         );
       } catch (err) {
         loading.remove();
-        addMsg(`Error: ${err.message}. Enter the 12-digit Ration Number again.`);
+        addMsg(`Error: ${err.message}.<br>Enter the 12-digit Ration Number again or click <b>New Card</b> to switch servers.`);
         setInputEnabled(true, "Enter 12-digit Ration Number");
       }
     }
@@ -257,7 +284,12 @@
       userInput.value = "";
       addMsg(text, "user");
 
-      if (state.step === "RATION_NO") {
+      if (state.step === "DISTRICT") {
+        state.district = text;
+        state.step = "RATION_NO";
+        addMsg("Now enter the <b>12-digit Ration Card Number</b>:");
+        setInputEnabled(true, "e.g. 369300849356");
+      } else if (state.step === "RATION_NO") {
         await handleRationNo(text);
       } else if (state.step === "VILLAGE") {
         state.village = text;
