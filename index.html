@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sri Sai Online Services — Smart Card Bot v2</title>
+  <title>Sri Sai Online Services — Smart Card Bot</title>
   <style>
     * {
       box-sizing: border-box;
@@ -35,7 +35,6 @@
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
-    /* Header */
     .chat-header {
       background: linear-gradient(135deg, #0b3b66 0%, #0f4c81 60%, #1d4ed8 100%);
       color: #ffffff;
@@ -63,7 +62,6 @@
       justify-content: center;
       font-size: 18px;
       font-weight: 800;
-      letter-spacing: 0.5px;
       color: #fde047;
       flex-shrink: 0;
     }
@@ -71,7 +69,6 @@
     .brand-info h1 {
       font-size: 15px;
       font-weight: 700;
-      letter-spacing: 0.2px;
       line-height: 1.2;
     }
 
@@ -123,7 +120,6 @@
       cursor: pointer;
       font-size: 12px;
       font-weight: 600;
-      transition: background 0.2s, transform 0.1s;
     }
 
     .icon-btn {
@@ -143,7 +139,6 @@
       background: rgba(255, 255, 255, 0.26);
     }
 
-    /* Welcome Banner */
     .welcome-banner {
       background: linear-gradient(90deg, #eff6ff 0%, #f0fdf4 100%);
       border-bottom: 1px solid #e2e8f0;
@@ -166,18 +161,16 @@
       font-size: 12.5px;
     }
 
-    .service-badge {
+    .wallet-badge {
       background: #0f4c81;
-      color: #ffffff;
-      font-size: 10px;
+      color: #fde047;
+      font-size: 11px;
       font-weight: 700;
-      padding: 4px 8px;
+      padding: 5px 10px;
       border-radius: 20px;
       white-space: nowrap;
-      letter-spacing: 0.3px;
     }
 
-    /* Chat Body */
     .chat-body {
       flex: 1;
       padding: 16px;
@@ -237,13 +230,11 @@
       text-align: right;
     }
 
-    /* Quick Reply Chips */
     .quick-replies {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       margin-top: 2px;
-      animation: fadeSlide 0.25s ease-out;
     }
 
     .chip {
@@ -256,52 +247,29 @@
       font-weight: 600;
       cursor: pointer;
       transition: all 0.18s ease;
-      box-shadow: 0 2px 4px rgba(15, 76, 129, 0.08);
     }
 
     .chip:hover {
       background: #0f4c81;
       color: #ffffff;
       border-color: #0f4c81;
-      transform: translateY(-1px);
-    }
-
-    /* Action Buttons */
-    .btn-group {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .download-btn, .whatsapp-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      color: #ffffff;
-      text-decoration: none;
-      padding: 10px 14px;
-      border-radius: 12px;
-      font-weight: 700;
-      font-size: 13px;
-      transition: transform 0.15s, box-shadow 0.15s;
     }
 
     .download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
       background: linear-gradient(135deg, #16a34a, #15803d);
+      color: #ffffff;
+      text-decoration: none;
+      padding: 11px 16px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 13.5px;
       box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
     }
 
-    .whatsapp-btn {
-      background: linear-gradient(135deg, #10b981, #059669);
-      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
-    }
-
-    .download-btn:hover, .whatsapp-btn:hover {
-      transform: translateY(-1px);
-    }
-
-    /* Typing Indicator */
     .typing {
       display: inline-flex;
       align-items: center;
@@ -325,7 +293,6 @@
       40% { transform: scale(1); opacity: 1; }
     }
 
-    /* Input Area */
     .chat-input {
       display: flex;
       gap: 8px;
@@ -342,7 +309,6 @@
       font-size: 14px;
       outline: none;
       background: #f8fafc;
-      transition: border-color 0.2s, background 0.2s;
     }
 
     .chat-input input:focus {
@@ -359,7 +325,6 @@
       font-weight: 700;
       font-size: 14px;
       cursor: pointer;
-      transition: opacity 0.2s;
     }
 
     .chat-input button:disabled {
@@ -384,7 +349,6 @@
 </head>
 <body>
   <div class="chat-shell">
-    <!-- Header -->
     <div class="chat-header">
       <div class="brand-wrap">
         <div class="brand-avatar">SS</div>
@@ -398,37 +362,34 @@
         </div>
       </div>
       <div class="header-actions">
-        <button class="icon-btn" id="soundBtn" title="Toggle Welcome Sound" onclick="toggleSound()">🔊</button>
+        <button class="icon-btn" id="soundBtn" title="Toggle Sound" onclick="toggleSound()">🔊</button>
         <button class="reset-btn" onclick="resetChat()">New Card</button>
       </div>
     </div>
 
-    <!-- Time-Based Greeting Banner -->
     <div class="welcome-banner">
       <div class="welcome-text" id="greetingBanner">
         <strong>Welcome to Sri Sai Online Services</strong>
         Online Center &amp; PAN Center
       </div>
-      <span class="service-badge">SMART PDF BOT V2</span>
+      <span class="wallet-badge" id="walletBadge">Wallet: ₹0</span>
     </div>
 
-    <!-- Chat Area -->
     <div class="chat-body" id="chatBody"></div>
 
-    <!-- Input Form -->
     <form class="chat-input" id="chatForm">
-      <input type="text" id="userInput" placeholder="Enter your mobile number..." autocomplete="off" />
+      <input type="text" id="userInput" placeholder="Enter registered mobile number..." autocomplete="off" />
       <button type="submit" id="sendBtn">Send</button>
     </form>
 
     <div class="footer-note">
-      Sri Sai Online Services • Support: 8247709435
+      Sri Sai Online Services • Direct PDF Download
     </div>
   </div>
 
   <script>
     const SERVER_ERR_MSG = "Server error. Try after some time or try another server.";
-    const SENDER_PHONE = "8247709435";
+    const ADMIN_PHONE = "8247709435";
     let API_BASE = "";
     let soundEnabled = true;
     let hasPlayedWelcome = false;
@@ -440,9 +401,15 @@
     const serverStatus = document.getElementById("serverStatus");
     const statusDot = document.getElementById("statusDot");
     const greetingBanner = document.getElementById("greetingBanner");
+    const walletBadge = document.getElementById("walletBadge");
     const soundBtn = document.getElementById("soundBtn");
 
     let state = {};
+
+    function setWalletBalance(bal) {
+      state.balance = Number(bal || 0);
+      walletBadge.textContent = `Wallet: ₹${state.balance}`;
+    }
 
     function getTimeGreeting() {
       const hour = new Date().getHours();
@@ -501,24 +468,6 @@
 
     function getCurrentTime() {
       return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-    }
-
-    function normalizePhone91(raw) {
-      let digits = (raw || "").replace(/\D/g, "");
-      if (digits.startsWith("91") && digits.length === 12) {
-        digits = digits.slice(2);
-      }
-      if (/^[6-9]\d{9}$/.test(digits)) {
-        return `91${digits}`;
-      }
-      return null;
-    }
-
-    function buildWhatsAppUrl(phone91, fileName, cardLabel) {
-      const text = encodeURIComponent(
-        `Hello! Your ${cardLabel} (${fileName}) is ready from Sri Sai Online Services (${SENDER_PHONE}).`
-      );
-      return `https://api.whatsapp.com/send?phone=${phone91}&text=${text}`;
     }
 
     async function loadServerUrl() {
@@ -619,46 +568,103 @@
       return m.name;
     }
 
+    function showHistoryList() {
+      const hist = state.history || [];
+      if (!hist.length) {
+        addMsg("No recent history found for your account.");
+        return;
+      }
+      const rows = hist.slice(0, 8).map(h =>
+        `• <b>${h.card_type}</b> (${h.ration_no}) — <b>${h.amount}</b> [${h.timestamp}]`
+      ).join("<br>");
+      addMsg(`📜 <b>Recent History:</b><br>${rows}`);
+    }
+
     function showServiceMenu() {
       state.step = "MENU";
-      addMsg(`✅ Logged in with <b>+${state.userPhone91}</b>.<br>Choose an option below:`);
-      setInputEnabled(false, "Select one of the 4 options above...");
+      addMsg(
+        `✅ Welcome, <b>${state.userName}</b> (<b>+${state.userPhone}</b>)<br>` +
+        `Wallet Balance: <b>₹${state.balance}</b><br>` +
+        `Choose an option below:`
+      );
+      setInputEnabled(false, "Select an option above...");
 
       addChips([
-        { label: "🪪 QR Code Card — Server 1", value: "qr_s1" },
-        { label: "⚡ QR Code Card — Server 2", value: "qr_s2" },
-        { label: "📋 Family Table Card — Server 1", value: "table_s1" },
-        { label: "🏥 TS Arogyasri Card", value: "arogya" }
-      ], (mode) => {
-        state.mode = mode;
-        state.step = "RATION_NO";
-
-        if (mode === "qr_s1") {
-          state.cardType = "smart_qr";
-          state.fetchEndpoint = "/api/fetch";
-          addMsg("Enter your <b>12-digit Ration Card Number</b> (<b>QR Code Card — Server 1</b>):");
-        } else if (mode === "qr_s2") {
-          state.cardType = "smart_qr";
-          state.fetchEndpoint = "/api/fetch-server2";
-          addMsg("Enter your <b>12-digit Ration Card Number</b> (<b>QR Code Card — Server 2</b>):");
-        } else if (mode === "table_s1") {
-          state.cardType = "family_table";
-          state.fetchEndpoint = "/api/fetch";
-          addMsg("Enter your <b>12-digit Ration Card Number</b> (<b>Family Table Card — Server 1</b>):");
-        } else {
-          state.cardType = "arogya";
-          addMsg("Enter your <b>12-digit Ration Card Number</b> (<b>TS Arogyasri Card</b>):");
+        { label: "🪪 QR Card — Server 1", value: "qr_s1" },
+        { label: "⚡ QR Card — Server 2", value: "qr_s2" },
+        { label: "📋 Table Card — Server 1", value: "table_s1" },
+        { label: "🏥 TS Arogyasri Card", value: "arogya" },
+        { label: "📜 My History", value: "history" }
+      ], (choice) => {
+        if (choice === "history") {
+          showHistoryList();
+          showServiceMenu();
+          return;
         }
 
+        state.mode = choice;
+        state.step = "RATION_NO";
+
+        if (choice === "qr_s1") {
+          state.cardType = "smart_qr";
+          state.fetchEndpoint = "/api/fetch";
+          addMsg("Enter your <b>12-digit Ration Card Number</b>:");
+        } else if (choice === "qr_s2") {
+          state.cardType = "smart_qr";
+          state.fetchEndpoint = "/api/fetch-server2";
+          addMsg("Enter your <b>12-digit Ration Card Number</b>:");
+        } else if (choice === "table_s1") {
+          state.cardType = "family_table";
+          state.fetchEndpoint = "/api/fetch";
+          addMsg("Enter your <b>12-digit Ration Card Number</b>:");
+        } else {
+          state.cardType = "arogya";
+          addMsg("Enter your <b>12-digit Ration Card Number</b>:");
+        }
         setInputEnabled(true, "e.g. 360000000000");
       });
     }
 
+    async function handleLogin(rawPhone) {
+      setInputEnabled(false, "Checking registration...");
+      const loading = addTypingMsg("Verifying registered mobile number &amp; wallet balance...");
+
+      try {
+        const res = await fetch(`${API_BASE}/api/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: rawPhone })
+        });
+        const data = await res.json();
+        loading.remove();
+
+        if (!res.ok) {
+          addMsg(`⚠️ ${data.detail || "Mobile number not registered. Contact admin to load balance."}`);
+          setInputEnabled(true, "Enter registered 10-digit Mobile Number");
+          return;
+        }
+
+        state.userPhone = data.phone;
+        state.userName = data.name || "User";
+        state.history = data.history || [];
+        setWalletBalance(data.balance);
+        showServiceMenu();
+      } catch (err) {
+        loading.remove();
+        addMsg(`⚠️ ${SERVER_ERR_MSG}`);
+        setInputEnabled(true, "Enter registered 10-digit Mobile Number");
+      }
+    }
+
     async function resetChat() {
       updateGreetingBanner();
+      setWalletBalance(0);
       chatBody.innerHTML = "";
       state = {
-        userPhone91: "",
+        userPhone: "",
+        userName: "",
+        balance: 0,
+        history: [],
         mode: "qr_s1",
         cardType: "smart_qr",
         fetchEndpoint: "/api/fetch",
@@ -680,24 +686,21 @@
       const greet = getTimeGreeting();
       addMsg(
         `<b>${greet}!</b><br>Welcome to <b>Sri Sai Online Services — Online Center &amp; PAN Center</b>.<br><br>` +
-        `Please enter your <b>10-digit Mobile Number</b> to login:`
+        `Enter your <b>registered 10-digit Mobile Number</b> to login:`
       );
       setInputEnabled(true, "Enter 10-digit Mobile Number");
     }
 
-    function renderPdfSuccess(cardLabel, fileName, blob) {
+    function renderPdfSuccess(cardLabel, fileName, blob, newBalance) {
+      if (newBalance !== null && newBalance !== undefined && newBalance !== "") {
+        setWalletBalance(newBalance);
+      }
       const url = URL.createObjectURL(blob);
-      const waUrl = buildWhatsAppUrl(state.userPhone91, fileName, cardLabel);
-
       addMsg(
         `🎉 Your <b>${cardLabel}</b> is ready!<br>` +
-        `<small style="color:#64748b;">Recipient: <b>+${state.userPhone91}</b> • Sender: <b>${SENDER_PHONE}</b></small><br>` +
-        `<div class="btn-group">` +
-          `<a class="download-btn" href="${url}" download="${fileName}">⬇️ Download PDF</a>` +
-          `<a class="whatsapp-btn" href="${waUrl}" target="_blank" rel="noopener noreferrer">💬 Send via WhatsApp</a>` +
-        `</div>`
+        `<small style="color:#64748b;">Remaining Wallet Balance: <b>₹${state.balance}</b></small><br>` +
+        `<a class="download-btn" href="${url}" download="${fileName}">⬇️ Download PDF</a>`
       );
-
       setTimeout(() => URL.revokeObjectURL(url), 5 * 60 * 1000);
       setInputEnabled(false, "Click 'New Card' above to start again");
     }
@@ -709,26 +712,36 @@
       }
       state.rationNo = rcNo;
       setInputEnabled(false, "Generating TS Arogyasri PDF...");
-      const loading = addTypingMsg("Fetching family records &amp; generating your <b>TS Arogyasri Card PDF</b>...");
+      const loading = addTypingMsg("Checking balance &amp; generating your <b>TS Arogyasri Card PDF</b>...");
 
       try {
         const res = await fetch(`${API_BASE}/api/arogya-pdf`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-User-Phone": state.userPhone91
+            "X-User-Phone": state.userPhone
           },
           body: JSON.stringify({ ration_no: rcNo })
         });
 
         if (!res.ok) {
-          throw new Error(SERVER_ERR_MSG);
+          const errData = await res.json().catch(() => ({}));
+          loading.remove();
+          if (res.status === 402) {
+            addMsg(`⚠️ ${errData.detail || "Insufficient wallet balance. Please load balance."}`);
+            setInputEnabled(false, "Load wallet balance to continue");
+            return;
+          }
+          addMsg(`⚠️ ${SERVER_ERR_MSG}`);
+          setInputEnabled(true, "Enter 12-digit Ration Number");
+          return;
         }
 
+        const newBal = res.headers.get("X-Wallet-Balance");
         const blob = await res.blob();
         const fileName = `${rcNo} - TS Arogyasri Card.pdf`;
         loading.remove();
-        renderPdfSuccess("TS Arogyasri Card PDF", fileName, blob);
+        renderPdfSuccess("TS Arogyasri Card PDF", fileName, blob, newBal);
       } catch (err) {
         loading.remove();
         addMsg(`⚠️ ${SERVER_ERR_MSG}`);
@@ -744,22 +757,29 @@
       state.rationNo = rcNo;
 
       setInputEnabled(false, "Fetching details...");
-      const loading = addTypingMsg("Fetching details, please wait...");
+      const loading = addTypingMsg("Checking balance &amp; fetching details, please wait...");
 
       try {
         const res = await fetch(`${API_BASE}${state.fetchEndpoint}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-User-Phone": state.userPhone91
+            "X-User-Phone": state.userPhone
           },
-          body: JSON.stringify({ ration_no: rcNo })
+          body: JSON.stringify({ ration_no: rcNo, card_type: state.cardType })
         });
         const data = await res.json();
         loading.remove();
 
         if (!res.ok) {
-          throw new Error(SERVER_ERR_MSG);
+          if (res.status === 402) {
+            addMsg(`⚠️ ${data.detail || "Insufficient wallet balance. Please load balance."}`);
+            setInputEnabled(false, "Load wallet balance to continue");
+            return;
+          }
+          addMsg(`⚠️ ${SERVER_ERR_MSG}`);
+          setInputEnabled(true, "Enter 12-digit Ration Number");
+          return;
         }
 
         state.scraped = data;
@@ -815,20 +835,30 @@
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "X-User-Phone": state.userPhone91
+            "X-User-Phone": state.userPhone
           },
           body: JSON.stringify(payload)
         });
 
         if (!res.ok) {
-          throw new Error(SERVER_ERR_MSG);
+          const errData = await res.json().catch(() => ({}));
+          loading.remove();
+          if (res.status === 402) {
+            addMsg(`⚠️ ${errData.detail || "Insufficient wallet balance. Please load balance."}`);
+            setInputEnabled(false, "Load wallet balance to continue");
+            return;
+          }
+          addMsg(`⚠️ ${SERVER_ERR_MSG}`);
+          setInputEnabled(false, "Click 'New Card' to retry");
+          return;
         }
 
+        const newBal = res.headers.get("X-Wallet-Balance");
         const blob = await res.blob();
         const suffix = isFamilyTable ? "Family Details Card" : "Smart Ration Card";
         const fileName = `${state.hof} - ${suffix}.pdf`;
         loading.remove();
-        renderPdfSuccess(cardLabel, fileName, blob);
+        renderPdfSuccess(cardLabel, fileName, blob, newBal);
       } catch (err) {
         loading.remove();
         addMsg(`⚠️ ${SERVER_ERR_MSG}`);
@@ -844,14 +874,7 @@
       addMsg(text, "user");
 
       if (state.step === "LOGIN_PHONE") {
-        const phone91 = normalizePhone91(text);
-        if (!phone91) {
-          addMsg("Please enter a valid <b>10-digit Mobile Number</b> to continue.");
-          setInputEnabled(true, "Enter 10-digit Mobile Number");
-          return;
-        }
-        state.userPhone91 = phone91;
-        showServiceMenu();
+        await handleLogin(text);
       } else if (state.step === "RATION_NO") {
         if (state.cardType === "arogya") {
           await handleArogyaPdf(text);
