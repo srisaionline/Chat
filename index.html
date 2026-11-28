@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sri Sai Online Services — TS Ration &amp; Arogyasri Bot</title>
+  <title>Sri Sai Online Services — Smart Card Bot</title>
   <style>
     * {
       box-sizing: border-box;
@@ -404,7 +404,7 @@
 
     <!-- Input Form -->
     <form class="chat-input" id="chatForm">
-      <input type="text" id="userInput" placeholder="Choose a service above..." autocomplete="off" />
+      <input type="text" id="userInput" placeholder="Choose an option above..." autocomplete="off" />
       <button type="submit" id="sendBtn">Send</button>
     </form>
 
@@ -591,9 +591,10 @@
       updateGreetingBanner();
       chatBody.innerHTML = "";
       state = {
-        service: "",
+        mode: "qr_s1", // "qr_s1" | "qr_s2" | "table_s1" | "arogya"
         cardType: "smart_qr",
-        step: "SERVICE",
+        fetchEndpoint: "/api/fetch",
+        step: "MENU",
         rationNo: "",
         scraped: null,
         hof: "",
@@ -611,28 +612,36 @@
       const greet = getTimeGreeting();
       addMsg(
         `<b>${greet}!</b><br>Welcome to <b>Sri Sai Online Services — Online Center &amp; PAN Center</b>.<br><br>` +
-        `Which PDF card would you like to generate today?`
+        `Choose an option below:`
       );
-      setInputEnabled(false, "Select a service above...");
+      setInputEnabled(false, "Select one of the 4 options above...");
 
       addChips([
-        { label: "🪪 Smart QR Card (EPDS)", value: "epds_qr" },
-        { label: "⚡ Smart QR Card (SmartPDS)", value: "smartpds_qr" },
-        { label: "📋 Family Members Table PDF", value: "family_table_pdf" },
-        { label: "🏥 Arogyasri Card PDF", value: "arogya_pdf" }
-      ], (svc) => {
-        state.service = svc;
-        state.cardType = svc === "family_table_pdf" ? "family_table" : "smart_qr";
+        { label: "🪪 QR Code Card — Server 1", value: "qr_s1" },
+        { label: "⚡ QR Code Card — Server 2", value: "qr_s2" },
+        { label: "📋 Family Table Card — Server 1", value: "table_s1" },
+        { label: "🏥 TS Arogyasri Card", value: "arogya" }
+      ], (mode) => {
+        state.mode = mode;
         state.step = "RATION_NO";
 
-        if (svc === "arogya_pdf") {
-          addMsg("Enter your <b>12-digit Ration Card Number</b> to auto-generate your <b>Arogyasri Card PDF</b>:");
-        } else if (svc === "family_table_pdf") {
-          addMsg("Enter your <b>12-digit Ration Card Number</b> to generate your <b>Family Members Table PDF</b>:");
+        if (mode === "qr_s1") {
+          state.cardType = "smart_qr";
+          state.fetchEndpoint = "/api/fetch";
+          addMsg("Enter your <b>12-digit Ration Card Number</b> (<b>QR Code Card — Server 1</b>):");
+        } else if (mode === "qr_s2") {
+          state.cardType = "smart_qr";
+          state.fetchEndpoint = "/api/fetch-server2";
+          addMsg("Enter your <b>12-digit Ration Card Number</b> (<b>QR Code Card — Server 2</b>):");
+        } else if (mode === "table_s1") {
+          state.cardType = "family_table";
+          state.fetchEndpoint = "/api/fetch";
+          addMsg("Enter your <b>12-digit Ration Card Number</b> (<b>Family Table Card — Server 1</b>):");
         } else {
-          const portal = svc === "smartpds_qr" ? "SmartPDS" : "EPDS";
-          addMsg(`Enter your <b>12-digit Telangana Ration Card Number</b> to fetch via <b>${portal}</b>:`);
+          state.cardType = "arogya";
+          addMsg("Enter your <b>12-digit Ration Card Number</b> (<b>TS Arogyasri Card</b>):");
         }
+
         setInputEnabled(true, "e.g. 360000000000");
       });
     }
@@ -643,8 +652,8 @@
         return;
       }
       state.rationNo = rcNo;
-      setInputEnabled(false, "Generating Arogyasri PDF...");
-      const loading = addTypingMsg("Fetching ePoS family records &amp; generating your <b>Arogyasri Card PDF</b>...");
+      setInputEnabled(false, "Generating TS Arogyasri PDF...");
+      const loading = addTypingMsg("Fetching family records &amp; generating your <b>TS Arogyasri Card PDF</b>...");
 
       try {
         const res = await fetch(`${API_BASE}/api/arogya-pdf`, {
@@ -659,13 +668,13 @@
 
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
-        const fileName = `${rcNo} - Arogyasri Card.pdf`;
+        const fileName = `${rcNo} - TS Arogyasri Card.pdf`;
 
         loading.remove();
         addMsg(
-          `🎉 Your <b>Arogyasri Card PDF</b> is ready!<br>` +
+          `🎉 Your <b>TS Arogyasri Card PDF</b> is ready!<br>` +
           `<small style="color:#64748b;">Generated in memory — no copy is stored on the server.</small><br>` +
-          `<a class="download-btn" href="${url}" download="${fileName}">⬇️ Download Arogyasri PDF</a>`
+          `<a class="download-btn" href="${url}" download="${fileName}">⬇️ Download PDF</a>`
         );
 
         setTimeout(() => URL.revokeObjectURL(url), 5 * 60 * 1000);
@@ -684,15 +693,11 @@
       }
       state.rationNo = rcNo;
 
-      const useSmartPds = state.service === "smartpds_qr" || state.service === "family_table_pdf";
-      const endpoint = useSmartPds ? "/api/fetch-smartpds" : "/api/fetch";
-      const portalName = useSmartPds ? "SmartPDS Telangana" : "EPDS Telangana";
-
-      setInputEnabled(false, `Fetching from ${portalName}...`);
-      const loading = addTypingMsg(`Fetching live details from <b>${portalName}</b>, please wait...`);
+      setInputEnabled(false, "Fetching details...");
+      const loading = addTypingMsg("Fetching details, please wait...");
 
       try {
-        const res = await fetch(`${API_BASE}${endpoint}`, {
+        const res = await fetch(`${API_BASE}${state.fetchEndpoint}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ ration_no: rcNo })
@@ -707,7 +712,7 @@
         state.scraped = data;
         state.step = "HOF";
         addMsg(
-          `✅ Card found for <b>${data.district || "Telangana"} / ${data.mandal || "-"}</b> (FP Shop: <b>${data.fp_shop_no || "-"}</b>).<br>` +
+          `✅ Details found (FP Shop: <b>${data.fp_shop_no || "-"}</b>).<br>` +
           `Select the <b>Head of Family</b>:`
         );
 
@@ -720,7 +725,7 @@
             state.hof = selectedHof;
             state.step = "VILLAGE";
             addMsg("Enter your <b>Village / Ward Name</b>:");
-            setInputEnabled(true, "e.g. Srinagar");
+            setInputEnabled(true, "Enter Village / Ward Name");
           }
         );
       } catch (err) {
@@ -732,7 +737,7 @@
 
     async function generatePdf() {
       const isFamilyTable = state.cardType === "family_table";
-      const cardLabel = isFamilyTable ? "Family Members Table PDF" : "Smart QR Ration Card PDF";
+      const cardLabel = isFamilyTable ? "Family Table Card PDF" : "QR Code Card PDF";
 
       setInputEnabled(false, `Generating ${cardLabel}...`);
       const loading = addTypingMsg(`Designing your high-resolution <b>${cardLabel}</b>...`);
@@ -765,7 +770,7 @@
 
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
-        const suffix = isFamilyTable ? "Family Details Card" : "TS Ration Smart Card";
+        const suffix = isFamilyTable ? "Family Details Card" : "Smart Ration Card";
         const fileName = `${state.hof} - ${suffix}.pdf`;
 
         loading.remove();
@@ -792,7 +797,7 @@
       addMsg(text, "user");
 
       if (state.step === "RATION_NO") {
-        if (state.service === "arogya_pdf") {
+        if (state.cardType === "arogya") {
           await handleArogyaPdf(text);
         } else {
           await handleRationNo(text);
@@ -801,7 +806,7 @@
         state.village = text;
         state.step = "PINCODE";
         addMsg("Enter your <b>6-digit Pincode</b>:");
-        setInputEnabled(true, "e.g. 505001");
+        setInputEnabled(true, "Enter 6-digit Pincode");
       } else if (state.step === "PINCODE") {
         if (!/^\d{6}$/.test(text)) {
           addMsg("Please enter a valid <b>6-digit pincode</b>.");
