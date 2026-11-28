@@ -255,19 +255,45 @@
       border-color: #0f4c81;
     }
 
-    .download-btn {
+    .qr-box {
+      margin-top: 10px;
+      padding: 12px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      text-align: center;
+    }
+
+    .qr-box img {
+      width: 210px;
+      height: 210px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      margin: 8px auto;
+      display: block;
+    }
+
+    .download-btn, .wa-btn {
       display: inline-flex;
       align-items: center;
       gap: 8px;
       margin-top: 10px;
-      background: linear-gradient(135deg, #16a34a, #15803d);
       color: #ffffff;
       text-decoration: none;
-      padding: 11px 16px;
+      padding: 10px 15px;
       border-radius: 12px;
       font-weight: 700;
-      font-size: 13.5px;
+      font-size: 13px;
+    }
+
+    .download-btn {
+      background: linear-gradient(135deg, #16a34a, #15803d);
       box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+    }
+
+    .wa-btn {
+      background: linear-gradient(135deg, #10b981, #059669);
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
     }
 
     .typing {
@@ -383,13 +409,12 @@
     </form>
 
     <div class="footer-note">
-      Sri Sai Online Services • Direct PDF Download
+      Sri Sai Online Services • Support: 8247709435
     </div>
   </div>
 
   <script>
     const SERVER_ERR_MSG = "Server error. Try after some time or try another server.";
-    const ADMIN_PHONE = "8247709435";
     let API_BASE = "";
     let soundEnabled = true;
     let hasPlayedWelcome = false;
@@ -568,23 +593,62 @@
       return m.name;
     }
 
-    function showHistoryList() {
-      const hist = state.history || [];
+    async function showLoadWalletQr() {
+      setInputEnabled(false, "Generating UPI QR...");
+      const loading = addTypingMsg("Generating UPI QR code for wallet top-up...");
+
+      try {
+        const res = await fetch(`${API_BASE}/api/wallet/qr`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ phone: state.userPhone })
+        });
+        const data = await res.json();
+        loading.remove();
+
+        if (!res.ok) {
+          addMsg(`⚠️ ${data.detail || SERVER_ERR_MSG}`);
+          showServiceMenu();
+          return;
+        }
+
+        addMsg(
+          `💳 <b>Load Wallet Balance</b><br>` +
+          `Pay to UPI ID: <b>${data.upi_id}</b><br>` +
+          `<div class="qr-box">` +
+            `<img src="${data.qr_image}" alt="UPI QR Code" />` +
+            `<div style="font-size:12px;color:#334155;">After completing payment, send confirmation with screenshot to admin <b>${data.admin_phone}</b> on WhatsApp.</div>` +
+            `<a class="wa-btn" href="${data.whatsapp_url}" target="_blank" rel="noopener noreferrer">💬 Send Payment Confirmation on WhatsApp</a>` +
+          `</div>`
+        );
+
+        addChips([
+          { label: "🔙 Back to Menu", value: "menu" }
+        ], () => showServiceMenu());
+      } catch (err) {
+        loading.remove();
+        addMsg(`⚠️ ${SERVER_ERR_MSG}`);
+        showServiceMenu();
+      }
+    }
+
+    function showCardHistory() {
+      const hist = state.cardHistory || [];
       if (!hist.length) {
-        addMsg("No recent history found for your account.");
+        addMsg("No card generation history found for your account.");
         return;
       }
       const rows = hist.slice(0, 8).map(h =>
         `• <b>${h.card_type}</b> (${h.ration_no}) — <b>${h.amount}</b> [${h.timestamp}]`
       ).join("<br>");
-      addMsg(`📜 <b>Recent History:</b><br>${rows}`);
+      addMsg(`📜 <b>Card History:</b><br>${rows}`);
     }
 
     function showServiceMenu() {
       state.step = "MENU";
       addMsg(
         `✅ Welcome, <b>${state.userName}</b> (<b>+${state.userPhone}</b>)<br>` +
-        `Wallet Balance: <b>₹${state.balance}</b><br>` +
+        `Wallet Balance: <b>₹${state.balance}</b> (Per Card: <b>₹${state.cardCost}</b>)<br>` +
         `Choose an option below:`
       );
       setInputEnabled(false, "Select an option above...");
@@ -594,10 +658,15 @@
         { label: "⚡ QR Card — Server 2", value: "qr_s2" },
         { label: "📋 Table Card — Server 1", value: "table_s1" },
         { label: "🏥 TS Arogyasri Card", value: "arogya" },
-        { label: "📜 My History", value: "history" }
+        { label: "💳 Load Wallet Balance", value: "load_wallet" },
+        { label: "📜 Card History", value: "history" }
       ], (choice) => {
+        if (choice === "load_wallet") {
+          showLoadWalletQr();
+          return;
+        }
         if (choice === "history") {
-          showHistoryList();
+          showCardHistory();
           showServiceMenu();
           return;
         }
@@ -625,6 +694,20 @@
       });
     }
 
+    function handleInsufficientBalance(msgText) {
+      addMsg(
+        `⚠️ ${msgText || `Insufficient wallet balance. Per card charge is ₹${state.cardCost}. Please load wallet balance.`}`
+      );
+      addChips([
+        { label: "💳 Load Wallet Balance", value: "load_wallet" },
+        { label: "🔙 Back to Menu", value: "menu" }
+      ], (act) => {
+        if (act === "load_wallet") showLoadWalletQr();
+        else showServiceMenu();
+      });
+      setInputEnabled(false, "Click 'Load Wallet Balance' above");
+    }
+
     async function handleLogin(rawPhone) {
       setInputEnabled(false, "Checking registration...");
       const loading = addTypingMsg("Verifying registered mobile number &amp; wallet balance...");
@@ -646,7 +729,8 @@
 
         state.userPhone = data.phone;
         state.userName = data.name || "User";
-        state.history = data.history || [];
+        state.cardCost = Number(data.card_cost || 20);
+        state.cardHistory = data.card_history || [];
         setWalletBalance(data.balance);
         showServiceMenu();
       } catch (err) {
@@ -664,7 +748,8 @@
         userPhone: "",
         userName: "",
         balance: 0,
-        history: [],
+        cardCost: 20,
+        cardHistory: [],
         mode: "qr_s1",
         cardType: "smart_qr",
         fetchEndpoint: "/api/fetch",
@@ -728,8 +813,7 @@
           const errData = await res.json().catch(() => ({}));
           loading.remove();
           if (res.status === 402) {
-            addMsg(`⚠️ ${errData.detail || "Insufficient wallet balance. Please load balance."}`);
-            setInputEnabled(false, "Load wallet balance to continue");
+            handleInsufficientBalance(errData.detail);
             return;
           }
           addMsg(`⚠️ ${SERVER_ERR_MSG}`);
@@ -773,8 +857,7 @@
 
         if (!res.ok) {
           if (res.status === 402) {
-            addMsg(`⚠️ ${data.detail || "Insufficient wallet balance. Please load balance."}`);
-            setInputEnabled(false, "Load wallet balance to continue");
+            handleInsufficientBalance(data.detail);
             return;
           }
           addMsg(`⚠️ ${SERVER_ERR_MSG}`);
@@ -844,8 +927,7 @@
           const errData = await res.json().catch(() => ({}));
           loading.remove();
           if (res.status === 402) {
-            addMsg(`⚠️ ${errData.detail || "Insufficient wallet balance. Please load balance."}`);
-            setInputEnabled(false, "Load wallet balance to continue");
+            handleInsufficientBalance(errData.detail);
             return;
           }
           addMsg(`⚠️ ${SERVER_ERR_MSG}`);
